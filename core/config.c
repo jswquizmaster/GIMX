@@ -1350,6 +1350,7 @@ void cfg_process_event(GE_Event* event)
   int min_axis, max_axis;
   e_mouse_mode mode;
   s_adapter* controller;
+  static int share_pressed = 0;
 
   unsigned int device = ginput_get_device_id(event);
 
@@ -1403,14 +1404,18 @@ void cfg_process_event(GE_Event* event)
           // If "share" button is pressed
           if(axis == 8)
           {
+            //printf("SHARED pressed!\n");
+            share_pressed = 1;
+          } else if(share_pressed) {
             int fd;
             char *myfifo = "/tmp/wspipein.fifo";
-            const char msg = 'S';
+            char buffer[16] = {0};
 
             fd = open(myfifo, O_WRONLY);
             if (fd >= 0)
             {
-              if (write(fd, &msg, sizeof(msg)) == -1)
+              sprintf(buffer, "%d", axis);
+              if (write(fd, buffer, strlen(buffer)) == -1)
               {
                 printf("ERROR: Could not write to pipe!");
               }
@@ -1435,9 +1440,14 @@ void cfg_process_event(GE_Event* event)
           {
             continue;
           }
+
           controller->send_command = 1;
           axis = mapper->axis_props.axis;
-          if(axis >= 0 && axis < AXIS_MAX)
+          if(axis == 8)
+          {
+            //printf("SHARED released!\n");
+            share_pressed = 0;
+          } else if(axis >= 0 && axis < AXIS_MAX)
           {
             update_ubutton_axis(mapper, c_id, axis);
           }
