@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 #include "config.h"
 #include <stdlib.h>
 #include <math.h>
@@ -1396,7 +1397,31 @@ void cfg_process_event(GE_Event* event)
           }
           controller->send_command = 1;
           axis = mapper->axis_props.axis;
-          if(axis >= 0 && axis < AXIS_MAX)
+
+          //printf("BUTTON: %d\n", axis);
+
+          // If "share" button is pressed
+          if(axis == 8)
+          {
+            int fd;
+            char *myfifo = "/tmp/wspipein.fifo";
+            const char msg = 'S';
+
+            fd = open(myfifo, O_WRONLY);
+            if (fd >= 0)
+            {
+              if (write(fd, &msg, sizeof(msg)) == -1)
+              {
+                printf("ERROR: Could not write to pipe!");
+              }
+              close(fd);
+            }
+            else
+            {
+              printf("ERROR: could not open pipe!");
+            }
+          }
+          else if(axis >= 0 && axis < AXIS_MAX)
           {
             update_dbutton_axis(mapper, c_id, axis);
           }
